@@ -1,0 +1,38 @@
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+
+# Virtual Environment
+venv/
+env/
+.venv/
+
+# IDE Settings
+.vscode/
+.idea/
+
+# Operating System
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Temporary Files
+*.log
+*.tmp
+*.bak
+
+# Environment Variables
+.env
+.env.local
+
+# Dataset Files
+*.csv
+
+# Model Files
+*.joblib
+*.pkl
+*.pickle

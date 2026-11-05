@@ -1,0 +1,641 @@
+5G GAME-STREAMING TRAFFIC: PACKET DIRECTION CLASSIFICATION
+===============================================================
+
+PROJECT OBJECTIVE
+-----------------
+The objective of this project is to classify network packets from a 5G game-streaming session (GeForce NOW) into two packet directions: Uplink and Downlink.
+
+The project uses packet size and timing-related features to identify whether a packet is transmitted from the client to the server (Uplink) or from the server to the client (Downlink).
+
+The dataset was analyzed, cleaned, preprocessed, and used for Machine Learning model training, evaluation, and comparison.
+
+OVERALL WORKFLOW
+----------------
+GeForce NOW Packet Capture Dataset
+    |
+    v
+7,338,316 Packets
+    |
+    v
+Data Loading
+    |
+    v
+Data Exploration and Analysis
+    |
+    v
+Data Cleaning
+    |
+    v
+Target Label Creation
+    |
+    v
+Uplink + Downlink Classification
+    |
+    v
+Feature Engineering
+    |
+    v
+Packet Length + Timing Features
+    |
+    v
+Time-Based Train-Test Split
+    |
+    v
+Training Samples: 300,000
+Testing Samples: 200,000
+    |
+    v
+Class Imbalance Handling
+    |
+    v
+Model Training
+    |
+    v
+Model Comparison
+    |
+    v
+TimeSeriesSplit Cross-Validation
+    |
+    v
+Hyperparameter Tuning
+    |
+    v
+Confusion Matrix
+    |
+    v
+Best Model: Tuned Decision Tree
+
+
+1. DATASET INFORMATION
+----------------------
+The project uses a merged GeForce NOW packet capture dataset.
+
+Dataset file:
+
+GeForce_Now_merged.csv
+
+Total packets:
+7,338,316
+
+Total columns:
+8
+
+The dataset contains network packet information captured during a GeForce NOW game-streaming session.
+
+The raw dataset is not included in the repository because of its size.
+
+The dataset is loaded directly from its local file path using Pandas.
+
+
+2. INITIAL DATA STRUCTURE
+-------------------------
+Original columns:
+
+No.
+Time
+Source
+Destination
+Protocol
+Length
+Info
+source_file
+
+Column descriptions:
+
+No.         = Packet sequence number
+Time        = Packet capture timestamp
+Source      = Source IP address
+Destination = Destination IP address
+Protocol    = Network protocol
+Length      = Packet length in bytes
+Info        = Packet information
+source_file = Original capture file name
+
+
+3. DATA EXPLORATION AND ANALYSIS
+--------------------------------
+Exploratory Data Analysis (EDA) was performed to understand the network traffic dataset.
+
+The following operations were performed:
+
+- Checking dataset dimensions.
+- Inspecting column names and data types.
+- Checking missing values.
+- Checking duplicate records.
+- Analyzing network protocols.
+- Analyzing packet length distribution.
+- Examining source and destination IP addresses.
+- Understanding packet direction distribution.
+
+Observed protocol distribution:
+
+UDP       = 7,330,803 packets (approximately 99.9%)
+TCP       = A few thousand packets
+TLSv1.2   = A few thousand packets
+RTCP      = Remaining small number of packets
+
+UDP dominates the dataset.
+
+Since the project focuses on packet direction rather than protocol classification, the source and destination IP addresses were analyzed to create the target labels.
+
+
+4. DATA CLEANING
+-----------------
+The dataset was checked for:
+
+- Missing values
+- Duplicate records
+- Incorrect data types
+- Unnecessary columns
+
+Results:
+
+Missing values = 0
+Duplicate rows = 0
+
+The dataset was prepared for further feature engineering and Machine Learning operations.
+
+
+5. TARGET LABEL CREATION
+------------------------
+The original dataset does not contain a predefined packet direction label.
+
+Therefore, a binary target variable was created using source IP addresses.
+
+Client IP:
+
+10.215.173.1
+
+Server IP addresses:
+
+112.217.128.200
+112.217.128.202
+
+Classification rules:
+
+If Source IP = 10.215.173.1:
+    Uplink
+
+If Source IP = 112.217.128.200 or 112.217.128.202:
+    Downlink
+
+Class distribution:
+
+Uplink:
+939,396 packets (12.8%)
+
+Downlink:
+6,398,920 packets (87.2%)
+
+Total:
+7,338,316 packets
+
+Target classes:
+
+Uplink
+Downlink
+
+
+6. REMOVING UNNECESSARY AND LEAKAGE-PRONE FEATURES
+--------------------------------------------------
+The following columns were excluded from the final Machine Learning features:
+
+No.
+Source
+Destination
+Protocol
+Info
+Time
+source_file
+
+Reasons:
+
+Source and Destination:
+These IP addresses were used to generate the target label. Including them as input features could cause target leakage.
+
+Protocol:
+Protocol information was not required for packet direction classification.
+
+Info:
+Contains packet descriptions and protocol-related hints.
+
+No.:
+Represents packet sequence information rather than useful packet characteristics.
+
+Time:
+The original timestamp was used to calculate inter-arrival time.
+
+source_file:
+Represents the original capture file information and is not required for the final classification.
+
+The final model uses packet size and timing-related features.
+
+
+7. FEATURE ENGINEERING
+----------------------
+Five numerical features were created for Machine Learning.
+
+1. Length
+   Represents the packet size in bytes.
+
+2. iat
+   Represents the inter-arrival time between consecutive packets in seconds.
+
+3. len_roll_mean
+   Rolling mean of packet Length over the last 10 packets.
+
+4. len_roll_std
+   Rolling standard deviation of packet Length over the last 10 packets.
+
+5. iat_roll_mean
+   Rolling mean of inter-arrival time over the last 10 packets.
+
+These features help the model understand packet size patterns and network traffic timing behavior.
+
+Final features:
+
+Length
+iat
+len_roll_mean
+len_roll_std
+iat_roll_mean
+
+
+8. TRAIN-TEST SPLIT
+-------------------
+A time-based splitting strategy was used.
+
+The original dataset was divided chronologically:
+
+First 80%:
+Training pool
+
+Last 20%:
+Testing pool
+
+Due to memory limitations, random samples were selected from each chronological pool.
+
+Training samples:
+300,000
+
+Testing samples:
+200,000
+
+Random State:
+42
+
+Class distribution:
+
+Training:
+
+Uplink = 13.2%
+Downlink = 86.8%
+
+Testing:
+
+Uplink = 11.5%
+Downlink = 88.5%
+
+The chronological separation helps evaluate model performance on later traffic data.
+
+
+9. CLASS IMBALANCE HANDLING
+---------------------------
+The original dataset contains significantly more Downlink packets than Uplink packets.
+
+Original distribution:
+
+Uplink   = 12.8%
+Downlink = 87.2%
+
+To handle class imbalance, class_weight="balanced" was used in the applicable classification models.
+
+This approach assigns higher importance to the minority class during model training.
+
+The original class distribution was retained in the training and testing samples.
+
+
+10. MACHINE LEARNING MODELS
+---------------------------
+The following Machine Learning models were evaluated:
+
+1. Logistic Regression
+2. Decision Tree Classifier
+3. Random Forest Classifier
+4. Histogram Gradient Boosting
+
+Logistic Regression:
+A linear classification algorithm used as a baseline model.
+
+Decision Tree:
+A tree-based classification algorithm that learns decision rules from packet features.
+
+Random Forest:
+An ensemble learning algorithm that combines multiple decision trees.
+
+Histogram Gradient Boosting:
+A boosting algorithm that builds decision trees sequentially to improve prediction performance.
+
+
+11. MODEL VALIDATION
+-------------------
+TimeSeriesSplit cross-validation was used to evaluate the performance and stability of the best candidate models.
+
+Number of folds:
+5
+
+Cross-validation Macro F1 results:
+
+Decision Tree:
+Mean = 0.9735
+Standard Deviation = 0.0045
+
+Random Forest:
+Mean = 0.9718
+Standard Deviation = 0.0043
+
+Tuned Decision Tree:
+Best CV Macro F1 = 0.9777
+
+Cross-validation was used to compare model performance across different chronological folds.
+
+
+12. HYPERPARAMETER TUNING
+-------------------------
+RandomizedSearchCV was used to optimize the Decision Tree model.
+
+Number of iterations:
+15
+
+Best parameters:
+
+criterion = "entropy"
+max_depth = 20
+min_samples_leaf = 1
+
+The tuned Decision Tree was evaluated on the held-out test dataset.
+
+The objective was to improve classification performance and find a suitable model configuration.
+
+
+13. MODEL EVALUATION METRICS
+----------------------------
+The models were evaluated using the following metrics:
+
+Accuracy
+Precision
+Recall
+F1 Score
+Macro F1 Score
+Confusion Matrix
+
+Macro F1 was particularly important because the dataset contains an imbalanced distribution of Uplink and Downlink packets.
+
+
+14. MODEL COMPARISON
+--------------------
+The following results were obtained on the 200,000-packet test dataset.
+
+Logistic Regression:
+
+Accuracy  = 73.11%
+Macro F1  = 62.76%
+Precision = 28.46%
+Recall    = 89.05%
+F1 Score  = 43.14%
+
+Decision Tree:
+
+Accuracy  = 99.01%
+Macro F1  = 97.62%
+Precision = 92.87%
+Recall    = 98.94%
+F1 Score  = 95.81%
+
+Random Forest:
+
+Accuracy  = 99.00%
+Macro F1  = 97.60%
+Precision = 92.94%
+Recall    = 98.76%
+F1 Score  = 95.76%
+
+Histogram Gradient Boosting:
+
+Accuracy  = 98.78%
+Macro F1  = 97.10%
+Precision = 91.39%
+Recall    = 98.66%
+F1 Score  = 94.89%
+
+Tuned Decision Tree:
+
+Accuracy  = 99.10%
+Macro F1  = 97.80%
+Precision = 94.90%
+Recall    = 97.34%
+F1 Score  = 96.11%
+
+
+15. TUNED DECISION TREE CONFUSION MATRIX
+----------------------------------------
+Final Tuned Decision Tree confusion matrix:
+
+                      Predicted
+                  Downlink    Uplink
+
+Actual Downlink    175,890     1,198
+
+Actual Uplink          609    22,303
+
+Total test samples:
+200,000
+
+Correct predictions:
+198,193
+
+Incorrect predictions:
+1,807
+
+The confusion matrix shows that the tuned Decision Tree correctly identifies most Uplink and Downlink packets.
+
+
+16. FEATURE IMPORTANCE
+---------------------
+Feature importance was analyzed to identify the contribution of individual features.
+
+Results:
+
+Length          = 0.848
+iat             = 0.130
+iat_roll_mean   = 0.008
+len_roll_mean   = 0.008
+len_roll_std    = 0.005
+
+Packet Length is the most important feature.
+
+Inter-arrival Time is the second most important feature.
+
+The three rolling features together contribute approximately 0.021 to the total feature importance.
+
+
+17. BEST MODEL SELECTION
+------------------------
+The Tuned Decision Tree was selected as the final model.
+
+Best model:
+Tuned Decision Tree
+
+Test Accuracy:
+99.10%
+
+Test Macro F1:
+0.9780
+
+Uplink Precision:
+0.9490
+
+Uplink Recall:
+0.9734
+
+Uplink F1 Score:
+0.9611
+
+The tuned Decision Tree achieved the highest test accuracy and Macro F1 score among the evaluated models.
+
+The model is saved using Joblib for future use.
+
+
+18. IMPORTANT FINDINGS AND LIMITATIONS
+--------------------------------------
+Important findings:
+
+- Tree-based models performed significantly better than Logistic Regression.
+- Packet Length was the most influential feature.
+- Inter-arrival Time also contributed significantly to classification.
+- The tuned Decision Tree achieved a small improvement over the baseline Decision Tree.
+- Cross-validation and test Macro F1 scores were very similar.
+
+Limitations:
+
+- The dataset covers only GeForce NOW traffic.
+- The task is packet direction classification, not game-streaming service classification.
+- Downlink packets are significantly more frequent than Uplink packets.
+- The task may be relatively easy because downlink video packets are generally larger than uplink control packets.
+- Classification is performed at packet level, not flow level.
+- The models were trained using sampled portions of the original 7.3-million-packet dataset.
+
+The reported performance should not automatically be interpreted as generalization to completely unseen network environments.
+
+
+19. FINAL PROJECT FLOW
+----------------------
+GeForce NOW Packet Capture Dataset
+    |
+    v
+7,338,316 Packets
+    |
+    v
+Data Loading
+    |
+    v
+Exploratory Data Analysis
+    |
+    v
+Data Cleaning
+    |
+    v
+Target Label Creation
+    |
+    v
+Uplink + Downlink
+    |
+    v
+Feature Engineering
+    |
+    v
+Packet Length + Timing Features
+    |
+    v
+Time-Based Train-Test Split
+    |
+    v
+Training: 300,000 Samples
+Testing: 200,000 Samples
+    |
+    v
+Class Imbalance Handling
+    |
+    v
+Logistic Regression
+Decision Tree
+Random Forest
+Histogram Gradient Boosting
+    |
+    v
+TimeSeriesSplit Cross-Validation
+    |
+    v
+RandomizedSearchCV
+    |
+    v
+Model Comparison
+    |
+    v
+Confusion Matrix
+    |
+    v
+Tuned Decision Tree = Best Model
+
+
+20. FINAL CONCLUSION
+--------------------
+This project demonstrates an end-to-end Machine Learning workflow for classifying Uplink and Downlink packets in a 5G game-streaming environment using GeForce NOW network traffic data.
+
+The project includes:
+
+- Loading and analyzing 7,338,316 network packets.
+- Exploring network protocols and packet characteristics.
+- Checking missing values and duplicate records.
+- Creating Uplink and Downlink target labels.
+- Engineering packet size and timing-related features.
+- Performing time-based train-test splitting.
+- Handling class imbalance using class weights.
+- Training multiple Machine Learning models.
+- Evaluating models using classification metrics.
+- Performing five-fold TimeSeriesSplit validation.
+- Optimizing the Decision Tree using RandomizedSearchCV.
+- Comparing model performance.
+- Analyzing the confusion matrix and feature importance.
+
+Final comparison:
+
+Logistic Regression          -> 73.11%
+Decision Tree                -> 99.01%
+Random Forest                 -> 99.00%
+Histogram Gradient Boosting   -> 98.78%
+Tuned Decision Tree           -> 99.10%
+
+The Tuned Decision Tree was selected as the final model with 99.10% test accuracy and 0.9780 Macro F1 score.
+
+The results demonstrate that packet size and timing-related features can effectively distinguish Uplink and Downlink traffic in the evaluated GeForce NOW dataset.
+
+
+21. TOOLS AND TECHNOLOGIES
+--------------------------
+Python
+Pandas
+NumPy
+Scikit-learn
+Matplotlib
+Seaborn
+Joblib
+Jupyter Notebook
+VS Code
+
+
+AUTHOR
+------
+Mohan Mandal
+BCA
+Brainware University
